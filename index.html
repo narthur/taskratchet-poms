@@ -6,15 +6,41 @@
 </head>
 <body>
 <div id="app">
-    {{ message }}
+    <div v-if="loggedIn">
+        <p>Welcome, {{ user }}!</p>
+        <ul>
+            <li v-for="pom in completed">{{ pom.text }}</li>
+        </ul>
+    </div>
+    <div v-else><a v-bind:href="authUrl">Please log in.</a></div>
 </div>
 <script>
-    var app = new Vue({
+    const params = new URLSearchParams(window.location.search);
+    const app = new Vue({
         el: '#app',
         data: {
-            message: 'Hello Vue!'
+            loggedIn: !!params.get('access_token'),
+            authUrl: 'https://www.beeminder.com/apps/authorize?client_id=6yb5j7c9b1fsq6q9m4tz4gcde&redirect_uri=https://pom.taskratchet.com/&response_type=token',
+            user: params.get('username'),
+            token: params.get('access_token'),
+            completed: [
+                { text: 'thing 1' },
+                { text: 'thing 2' },
+                { text: 'thing 3' },
+            ]
         }
     })
+
+    if (app.loggedIn) {
+        console.log(app.token);
+        fetch('https://www.beeminder.com/api/v1/users/alice/goals.json?access_token=' + app.token)
+            .then((response) => {
+                return response.json();
+            })
+            .then((data) => {
+                console.log(data);
+            });
+    }
 </script>
 </body>
 </html>
