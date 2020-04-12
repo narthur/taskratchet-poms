@@ -33,7 +33,9 @@
 
     if (app.loggedIn) {
         console.log(app.token);
-        fetch('https://www.beeminder.com/api/v1/users/alice/goals.json?access_token=' + app.token)
+        let input = 'https://www.beeminder.com/api/v1/users/' + app.user +  '/goals.json?access_token=' + app.token;
+        console.log(input);
+        fetch(input)
             .then((response) => {
                 return response.json();
             })
