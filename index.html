@@ -2,47 +2,90 @@
 <head>
     <!-- development version, includes helpful console warnings -->
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/vue-async-computed@3.8.1"></script>
+    <link rel = "stylesheet" type = "text/css" href = "style.css" />
     <title>Pomodoro Timer</title>
 </head>
 <body>
 <div id="app">
     <div v-if="loggedIn">
-        <p>Welcome, {{ user }}!</p>
+        <p>Welcome, {{ user }}! <a v-bind:href="redirectUri">Sign out</a></p>
+
+        <label>
+            Goal:
+            <select>
+                <option v-for="goal in goals" v-bind:value="goal.slug">{{ goal.slug }}</option>
+            </select>
+        </label>
+
+        <label>
+            Task:
+            <input type="text">
+        </label>
+
         <ul>
-            <li v-for="pom in completed">{{ pom.text }}</li>
+            <li v-for="pom in completed">{{ pom.slug }}: {{ pom.task }}</li>
         </ul>
     </div>
     <div v-else><a v-bind:href="authUrl">Please log in.</a></div>
 </div>
 <script>
-    const params = new URLSearchParams(window.location.search);
     const app = new Vue({
         el: '#app',
         data: {
-            loggedIn: !!params.get('access_token'),
-            authUrl: 'https://www.beeminder.com/apps/authorize?client_id=6yb5j7c9b1fsq6q9m4tz4gcde&redirect_uri=https://pom.taskratchet.com/&response_type=token',
-            user: params.get('username'),
-            token: params.get('access_token'),
+            params: new URLSearchParams(window.location.search),
+            isLocal: location.hostname === "localhost" || location.hostname === "127.0.0.1",
             completed: [
-                { text: 'thing 1' },
-                { text: 'thing 2' },
-                { text: 'thing 3' },
+                {
+                    task: 'thing 1',
+                    slug: 'slug'
+                },
+                {
+                    task: 'thing 2',
+                    slug: 'slug'
+                },
+                {
+                    task: 'thing 3',
+                    slug: 'slug'
+                },
             ]
+        },
+        computed: {
+            loggedIn: function() {
+                return !!this.params.get('access_token')
+            },
+            user: function() {
+                return this.params.get('username')
+            },
+            token: function() {
+                return this.params.get('access_token')
+            },
+            clientId: function() {
+                return this.isLocal ? "7n92m0sgmh61s69zz1fz6na4b" : "6yb5j7c9b1fsq6q9m4tz4gcde"
+            },
+            redirectUri: function() {
+                return this.isLocal ? "http://localhost:8080/" : "https://pom.taskratchet.com/"
+            },
+            authUrl: function() {
+                return `https://www.beeminder.com/apps/authorize?client_id=${this.clientId}&redirect_uri=${this.redirectUri}&response_type=token`
+            }
+        },
+        asyncComputed: {
+            goals: function() {
+                if (!this.loggedIn) return;
+
+                return fetch(`https://www.beeminder.com/api/v1/users/${this.user}/goals.json?access_token=${this.token}`)
+                    .then((response) => {
+                        return response.json();
+                    })
+                    .then((data) => {
+                        console.log(data);
+                        return data;
+                    });
+            }
         }
     })
 
-    if (app.loggedIn) {
-        console.log(app.token);
-        let input = 'https://www.beeminder.com/api/v1/users/' + app.user +  '/goals.json?access_token=' + app.token;
-        console.log(input);
-        fetch(input)
-            .then((response) => {
-                return response.json();
-            })
-            .then((data) => {
-                console.log(data);
-            });
-    }
 </script>
 </body>
 </html>
